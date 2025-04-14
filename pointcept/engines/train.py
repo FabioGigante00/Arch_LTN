@@ -33,6 +33,7 @@ from pointcept.utils.events import EventStorage, ExceptionWriter
 from pointcept.utils.registry import Registry
 from neptune import init_run
 from neptune_tensorboard import enable_tensorboard_logging
+from neptune.utils import stringify_unsupported
 
 TRAINERS = Registry("trainers")
 AMP_DTYPE = dict(
@@ -131,12 +132,6 @@ class Trainer(TrainerBase):
         super(Trainer, self).__init__()
         self.epoch = 0
         self.start_epoch = 0
-        self.max_epoch = cfg.eval_epoch
-        self.best_metric_value = -torch.inf
-        self.logger = get_root_logger(
-            log_file=os.path.join(cfg.save_path, "train.log"),
-            file_mode="a" if cfg.resume else "w",
-        )
 
         self.neptune_run = init_run(
             project = "GRAINS/ArchLTN",
@@ -144,6 +139,41 @@ class Trainer(TrainerBase):
             name = f"run-{datetime.now()}-{cfg.data.train.type}-on-{cfg.model.type}",
             tags = [cfg.data.train.type, "training", "semseg", cfg.model.type],
         )
+
+        neptune_id = self.neptune_run["sys/id"].fetch()
+        old_path = cfg.save_path
+        cfg.save_path = os.path.join(cfg.save_path, neptune_id)
+        # create neptune directory
+        if not os.path.exists(cfg.save_path):
+            os.makedirs(cfg.save_path)
+        # mv all the files in old_path to cfg.save_path
+        dir_to_move = ['code', 'model']
+        # Move only the directories in dir_to_move
+        for file in os.listdir(old_path):
+            if file in dir_to_move:
+                src = os.path.join(old_path, file)
+                dst = os.path.join(cfg.save_path, file)
+                if os.path.isdir(src):
+                    os.rename(src, dst)
+            else:
+                if os.path.isfile(os.path.join(old_path, file)):
+                    # move file to cfg.save_path
+                    src = os.path.join(old_path, file)
+                    dst = os.path.join(cfg.save_path, file)
+                    os.rename(src, dst)
+            
+
+        
+
+        self.max_epoch = cfg.eval_epoch
+        self.best_metric_value = -torch.inf
+        self.logger = get_root_logger(
+            log_file=os.path.join(cfg.save_path, "train.log"),
+            file_mode="a" if cfg.resume else "w",
+        )
+
+        self.neptune_run["sys/tags"].add([cfg.data.train.type, "training", "semseg", cfg.model.type])
+        self.neptune_run["configs"] = str(cfg)
 
         self.logger.info("=> Loading config ...")
         self.cfg = cfg
@@ -166,9 +196,15 @@ class Trainer(TrainerBase):
         self.scaler = self.build_scaler()
         self.logger.info("=> Building hooks ...")
         self.register_hooks(self.cfg.hooks)
-
-
-
+        """         # Save all the directory in cfg.save_path to neptune
+                for root, _, files in os.walk(cfg.save_path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        # Dont save model_best.pth and model_last.pth
+                        if file == "model_best.pth" or file == "model_last.pth":
+                            continue
+                        self.neptune_run[f"config_directory/{os.path.relpath(file_path, cfg.save_path)}"].upload(file_path)
+        """
 
     def train(self):
         with EventStorage() as self.storage, ExceptionWriter():
@@ -193,8 +229,10 @@ class Trainer(TrainerBase):
                     self.run_step()
                     # => after_step
                     self.after_step()
+                    
                 # => after epoch
                 self.after_epoch()
+
             # => after train
             self.after_train()
 
@@ -257,6 +295,8 @@ class Trainer(TrainerBase):
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
         # logger.info(f"Model: \n{self.model}")
         self.logger.info(f"Num params: {n_parameters}")
+        # Save in neptune
+        self.neptune_run["model/num_params"] = n_parameters
         model = create_ddp_model(
             model.cuda(),
             broadcast_buffers=False,
