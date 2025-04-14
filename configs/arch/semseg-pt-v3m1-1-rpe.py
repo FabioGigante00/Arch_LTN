@@ -1,8 +1,8 @@
 _base_ = ["../_base_/default_runtime.py"]
 
 # misc custom setting
-batch_size = 1#12  # bs: total bs in all gpus
-num_worker = 2#24
+batch_size = 1 #12  # bs: total bs in all gpus
+num_worker = 2 #24
 mix_prob = 0.8
 empty_cache = False
 enable_amp = True
@@ -52,7 +52,7 @@ model = dict(
 )
 
 # scheduler settings
-epoch = 3000
+epoch = 50 #3000
 optimizer = dict(type="AdamW", lr=0.006, weight_decay=0.05)
 scheduler = dict(
     type="OneCycleLR",
@@ -65,30 +65,27 @@ scheduler = dict(
 param_dicts = [dict(keyword="block", lr=0.0006)]
 
 # dataset settings
-dataset_type = "S3DISDataset"
-data_root = "data/s3dis"
+dataset_type = "ArchDataset"
+data_root = "data/Arch"
 
 data = dict(
     num_classes=13,
     ignore_index=-1,
-    names=[
-        "ceiling",
-        "floor",
-        "wall",
-        "beam",
+    names = [
+        "arch",
         "column",
-        "window",
-        "door",
-        "table",
-        "chair",
-        "sofa",
-        "bookcase",
-        "board",
-        "clutter",
+        "moldings",
+        "floor",
+        "door_window",
+        "wall",
+        "stairs",
+        "vault",
+        "roof",
+        "other"
     ],
     train=dict(
         type=dataset_type,
-        split=("Area_1", "Area_2", "Area_3", "Area_4", "Area_6"),
+        split= "Training",
         data_root=data_root,
         transform=[
             dict(type="CenterShift", apply_z=True),
@@ -123,7 +120,7 @@ data = dict(
     ),
     val=dict(
         type=dataset_type,
-        split="Area_5",
+        split="Validation",
         data_root=data_root,
         transform=[
             dict(type="CenterShift", apply_z=True),
@@ -158,7 +155,7 @@ data = dict(
     ),
     test=dict(
         type=dataset_type,
-        split="Area_5",
+        split="Test",
         data_root=data_root,
         transform=[
             dict(type="CenterShift", apply_z=True),
@@ -183,33 +180,10 @@ data = dict(
                     feat_keys=("color", "normal"),
                 ),
             ],
-            aug_transform=[
-                [dict(type="RandomScale", scale=[0.9, 0.9])],
-                [dict(type="RandomScale", scale=[0.95, 0.95])],
-                [dict(type="RandomScale", scale=[1, 1])],
-                [dict(type="RandomScale", scale=[1.05, 1.05])],
-                [dict(type="RandomScale", scale=[1.1, 1.1])],
-                [
-                    dict(type="RandomScale", scale=[0.9, 0.9]),
-                    dict(type="RandomFlip", p=1),
-                ],
-                [
-                    dict(type="RandomScale", scale=[0.95, 0.95]),
-                    dict(type="RandomFlip", p=1),
-                ],
-                [
-                    dict(type="RandomScale", scale=[1, 1]),
-                    dict(type="RandomFlip", p=1),
-                ],
-                [
-                    dict(type="RandomScale", scale=[1.05, 1.05]),
-                    dict(type="RandomFlip", p=1),
-                ],
-                [
-                    dict(type="RandomScale", scale=[1.1, 1.1]),
-                    dict(type="RandomFlip", p=1),
-                ],
-            ],
+            aug_transform = [
+                [dict(type="RandomRotateTargetAngle", angle=[0], axis="z", center=[0, 0, 0], p=1)]
+            ]
+            ,
         ),
     ),
 )

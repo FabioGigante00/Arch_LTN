@@ -5,6 +5,7 @@ Author: Xiaoyang Wu (xiaoyang.wu.cs@gmail.com)
 Please cite our work if the code is helpful to you.
 """
 
+from datetime import datetime
 import os
 import sys
 import weakref
@@ -30,13 +31,16 @@ from pointcept.utils.optimizer import build_optimizer
 from pointcept.utils.scheduler import build_scheduler
 from pointcept.utils.events import EventStorage, ExceptionWriter
 from pointcept.utils.registry import Registry
-
+from neptune import init_run
+from neptune_tensorboard import enable_tensorboard_logging
 
 TRAINERS = Registry("trainers")
 AMP_DTYPE = dict(
     float16=torch.float16,
     bfloat16=torch.bfloat16,
 )
+
+
 
 
 class TrainerBase:
@@ -117,6 +121,8 @@ class TrainerBase:
             h.after_train()
         if comm.is_main_process():
             self.writer.close()
+        if self.neptune_run is not None:
+            self.neptune_run.stop()
 
 
 @TRAINERS.register_module("DefaultTrainer")
@@ -131,6 +137,14 @@ class Trainer(TrainerBase):
             log_file=os.path.join(cfg.save_path, "train.log"),
             file_mode="a" if cfg.resume else "w",
         )
+
+        self.neptune_run = init_run(
+            project = "GRAINS/ArchLTN",
+            api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI2ZDE2NjEyNC0xZmI2LTRjMmYtYmM1Yi1kNzFhY2E1YzY4NjcifQ==",
+            name = f"run-{datetime.now()}-{cfg.data.train.type}-on-{cfg.model.type}",
+            tags = [cfg.data.train.type, "training", "semseg", cfg.model.type],
+        )
+
         self.logger.info("=> Loading config ...")
         self.cfg = cfg
         self.logger.info(f"Save path: {cfg.save_path}")
@@ -138,7 +152,10 @@ class Trainer(TrainerBase):
         self.logger.info("=> Building model ...")
         self.model = self.build_model()
         self.logger.info("=> Building writer ...")
+        ###########
         self.writer = self.build_writer()
+        if self.writer is not None:
+            enable_tensorboard_logging(self.neptune_run)
         self.logger.info("=> Building train dataset & dataloader ...")
         self.train_loader = self.build_train_loader()
         self.logger.info("=> Building val dataset & dataloader ...")
@@ -149,6 +166,9 @@ class Trainer(TrainerBase):
         self.scaler = self.build_scaler()
         self.logger.info("=> Building hooks ...")
         self.register_hooks(self.cfg.hooks)
+
+
+
 
     def train(self):
         with EventStorage() as self.storage, ExceptionWriter():
@@ -250,12 +270,24 @@ class Trainer(TrainerBase):
         return writer
 
     def build_train_loader(self):
+
+        """ print("="*100)
+        print("Current working directory:", os.getcwd())
+        print("="*100) """
+
         train_data = build_dataset(self.cfg.data.train)
+
+        print("="*100)
+        print("Train dataset length:", len(train_data))
+        print("Train dataset:", train_data)
+        print("Train dataset type:", type(train_data))
+        print("="*100)
 
         if comm.get_world_size() > 1:
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_data)
         else:
             train_sampler = None
+
 
         init_fn = (
             partial(
@@ -267,6 +299,7 @@ class Trainer(TrainerBase):
             if self.cfg.seed is not None
             else None
         )
+
 
         train_loader = torch.utils.data.DataLoader(
             train_data,
@@ -280,12 +313,19 @@ class Trainer(TrainerBase):
             drop_last=len(train_data) > self.cfg.batch_size,
             persistent_workers=True,
         )
+
         return train_loader
 
     def build_val_loader(self):
         val_loader = None
         if self.cfg.evaluate:
+
             val_data = build_dataset(self.cfg.data.val)
+            print("="*100)
+            print("Val dataset length:", len(val_data))
+            print("Val dataset:", val_data)
+            print("Val dataset type:", type(val_data))
+            print("="*100)
             if comm.get_world_size() > 1:
                 val_sampler = torch.utils.data.distributed.DistributedSampler(val_data)
             else:

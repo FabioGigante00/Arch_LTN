@@ -16,3 +16,4 @@ outputs/
 Dockerfile
 venv38/
 tests/
+.neptune/

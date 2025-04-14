@@ -54,6 +54,7 @@ class DefaultDataset(Dataset):
         self.loop = (
             loop if not test_mode else 1
         )  # force make loop = 1 while in test mode
+        
         self.test_mode = test_mode
         self.test_cfg = test_cfg if test_mode else None
 
@@ -66,6 +67,10 @@ class DefaultDataset(Dataset):
             self.aug_transform = [Compose(aug) for aug in self.test_cfg.aug_transform]
 
         self.data_list = self.get_data_list()
+
+        """ Overfit small sample for debug """
+        self.data_list = self.data_list[:1]
+
         logger = get_root_logger()
         logger.info(
             "Totally {} x {} samples in {} {} set.".format(
@@ -146,6 +151,7 @@ class DefaultDataset(Dataset):
     def prepare_train_data(self, idx):
         # load data
         data_dict = self.get_data(idx)
+        # Removing transformation part for now
         data_dict = self.transform(data_dict)
         return data_dict
 
