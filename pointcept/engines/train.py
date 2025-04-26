@@ -14,6 +14,9 @@ import torch.nn as nn
 import torch.utils.data
 from packaging import version
 from functools import partial
+import pointops
+import torch.distributed as dist
+from pointcept.utils.misc import intersection_and_union_gpu
 
 if sys.version_info >= (3, 10):
     from collections.abc import Iterator
@@ -32,8 +35,8 @@ from pointcept.utils.scheduler import build_scheduler
 from pointcept.utils.events import EventStorage, ExceptionWriter
 from pointcept.utils.registry import Registry
 from neptune import init_run
-from neptune_tensorboard import enable_tensorboard_logging
 from neptune.utils import stringify_unsupported
+#from neptune_tensorboard import enable_tensorboard_logging
 
 TRAINERS = Registry("trainers")
 AMP_DTYPE = dict(
@@ -136,35 +139,37 @@ class Trainer(TrainerBase):
         self.neptune_run = init_run(
             project = "GRAINS/ArchLTN",
             api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI2ZDE2NjEyNC0xZmI2LTRjMmYtYmM1Yi1kNzFhY2E1YzY4NjcifQ==",
-            name = f"run-{datetime.now()}-{cfg.data.train.type}-on-{cfg.model.type}",
-            tags = [cfg.data.train.type, "training", "semseg", cfg.model.type],
+            name = f"{cfg.data.train.type}-on-{cfg.model.type}",
+            tags = [cfg.data.train.type, "training", "semseg", cfg.model.type, 'SphereCrop150k'],
+            monitoring_namespace="monitoring/"
         )
-
-        neptune_id = self.neptune_run["sys/id"].fetch()
-        old_path = cfg.save_path
-        cfg.save_path = os.path.join(cfg.save_path, neptune_id)
-        # create neptune directory
-        if not os.path.exists(cfg.save_path):
-            os.makedirs(cfg.save_path)
-        # mv all the files in old_path to cfg.save_path
-        dir_to_move = ['code', 'model']
-        # Move only the directories in dir_to_move
-        for file in os.listdir(old_path):
-            if file in dir_to_move:
-                src = os.path.join(old_path, file)
-                dst = os.path.join(cfg.save_path, file)
-                if os.path.isdir(src):
-                    os.rename(src, dst)
-            else:
-                if os.path.isfile(os.path.join(old_path, file)):
-                    # move file to cfg.save_path
+        #self.neptune_run = None
+        if self.neptune_run is not None:
+            neptune_id = self.neptune_run["sys/id"].fetch()
+            old_path = cfg.save_path
+            cfg.save_path = os.path.join(cfg.save_path, neptune_id)
+            # create neptune directory
+            if not os.path.exists(cfg.save_path):
+                os.makedirs(cfg.save_path)
+            # mv all the files in old_path to cfg.save_path
+            dir_to_move = ['code'] # , 'model']
+            # Move only the directories in dir_to_move
+            for file in os.listdir(old_path):
+                if file in dir_to_move:
                     src = os.path.join(old_path, file)
                     dst = os.path.join(cfg.save_path, file)
-                    os.rename(src, dst)
+                    if os.path.isdir(src):
+                        os.rename(src, dst)
+                else:
+                    if os.path.isfile(os.path.join(old_path, file)):
+                        # move file to cfg.save_path
+                        src = os.path.join(old_path, file)
+                        dst = os.path.join(cfg.save_path, file)
+                        os.rename(src, dst)
+            # if cfg.save_path/model does not exist create it
+            if not os.path.exists(os.path.join(cfg.save_path, "model")):
+                os.makedirs(os.path.join(cfg.save_path, "model"))
             
-
-        
-
         self.max_epoch = cfg.eval_epoch
         self.best_metric_value = -torch.inf
         self.logger = get_root_logger(
@@ -172,8 +177,23 @@ class Trainer(TrainerBase):
             file_mode="a" if cfg.resume else "w",
         )
 
-        self.neptune_run["sys/tags"].add([cfg.data.train.type, "training", "semseg", cfg.model.type])
-        self.neptune_run["configs"] = str(cfg)
+        if self.neptune_run is not None:
+            self.neptune_run["sys/tags"].add([cfg.data.train.type, "training", "semseg", cfg.model.type])
+            def log_config(neptune_run, prefix, cfg):
+                for key, value in cfg.items():
+                    if isinstance(value, dict):
+                        log_config(neptune_run, f"{prefix}/{key}", value)  # Recursive call
+                    # if its a list same thing
+                    elif isinstance(value, list):
+                        for i, v in enumerate(value):
+                            if isinstance(v, dict):
+                                log_config(neptune_run, f"{prefix}/{key}/{i}", v)
+                            else:
+                                neptune_run[f"{prefix}/{key}/{i}"] = stringify_unsupported(v)
+                    else:
+                        neptune_run[f"{prefix}/{(key)}"] = stringify_unsupported(value)
+            # Usage
+            log_config(self.neptune_run, "config", cfg)
 
         self.logger.info("=> Loading config ...")
         self.cfg = cfg
@@ -184,8 +204,6 @@ class Trainer(TrainerBase):
         self.logger.info("=> Building writer ...")
         ###########
         self.writer = self.build_writer()
-        if self.writer is not None:
-            enable_tensorboard_logging(self.neptune_run)
         self.logger.info("=> Building train dataset & dataloader ...")
         self.train_loader = self.build_train_loader()
         self.logger.info("=> Building val dataset & dataloader ...")
@@ -196,15 +214,6 @@ class Trainer(TrainerBase):
         self.scaler = self.build_scaler()
         self.logger.info("=> Building hooks ...")
         self.register_hooks(self.cfg.hooks)
-        """         # Save all the directory in cfg.save_path to neptune
-                for root, _, files in os.walk(cfg.save_path):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        # Dont save model_best.pth and model_last.pth
-                        if file == "model_best.pth" or file == "model_last.pth":
-                            continue
-                        self.neptune_run[f"config_directory/{os.path.relpath(file_path, cfg.save_path)}"].upload(file_path)
-        """
 
     def train(self):
         with EventStorage() as self.storage, ExceptionWriter():
@@ -253,6 +262,38 @@ class Trainer(TrainerBase):
         ):
             output_dict = self.model(input_dict)
             loss = output_dict["loss"]
+            seg_logits = output_dict["seg_logits"]
+            pred = seg_logits.max(1)[1]
+            segment = input_dict["segment"]
+            if "origin_coord" in input_dict.keys():
+                idx, _ = pointops.knn_query(
+                    1,
+                    input_dict["coord"].float(),
+                    input_dict["offset"].int(),
+                    input_dict["origin_coord"].float(),
+                    input_dict["origin_offset"].int(),
+                )
+                pred = pred[idx.flatten().long()]
+                segment = input_dict["origin_segment"]
+            intersection, union, target = intersection_and_union_gpu(
+                pred,
+                segment,
+                self.cfg.data.num_classes,
+                self.cfg.data.ignore_index,
+            )
+            if comm.get_world_size() > 1:
+                dist.all_reduce(intersection), dist.all_reduce(union), dist.all_reduce(
+                    target
+                )
+            intersection, union, target = (
+                intersection.cpu().numpy(),
+                union.cpu().numpy(),
+                target.cpu().numpy(),
+            )
+            self.storage.put_scalar(f"train_intersection_epoch{self.epoch}", intersection)
+            self.storage.put_scalar(f"train_union_epoch{self.epoch}", union)
+            self.storage.put_scalar(f"train_target_epoch{self.epoch}", target)
+
         self.optimizer.zero_grad()
         if self.cfg.enable_amp:
             self.scaler.scale(loss).backward()
@@ -279,6 +320,8 @@ class Trainer(TrainerBase):
             self.scheduler.step()
         if self.cfg.empty_cache:
             torch.cuda.empty_cache()
+        # removing sem_logits from output_dict
+        output_dict.pop("seg_logits")
         self.comm_info["model_output_dict"] = output_dict
 
     def after_epoch(self):
@@ -296,7 +339,8 @@ class Trainer(TrainerBase):
         # logger.info(f"Model: \n{self.model}")
         self.logger.info(f"Num params: {n_parameters}")
         # Save in neptune
-        self.neptune_run["model/num_params"] = n_parameters
+        if self.neptune_run is not None:
+            self.neptune_run["model/num_params"] = n_parameters
         model = create_ddp_model(
             model.cuda(),
             broadcast_buffers=False,

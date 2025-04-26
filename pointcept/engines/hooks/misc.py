@@ -28,6 +28,7 @@ from pointcept.engines.test import TESTERS
 
 from .default import HookBase
 from .builder import HOOKS
+import numpy as np
 
 
 @HOOKS.register_module()
@@ -120,6 +121,13 @@ class InformationWriter(HookBase):
                     self.trainer.storage.history(key).val,
                     self.curr_iter,
                 )
+        if self.trainer.neptune_run is not None:
+            self.trainer.neptune_run["params/lr"].log(lr)
+            for key in self.model_output_keys:
+                self.trainer.neptune_run["train_batch/" + key].log(
+                    value = self.trainer.storage.history(key).val,
+                    step = self.curr_iter,
+                )
 
     def after_epoch(self):
         epoch_info = "Train result: "
@@ -127,6 +135,34 @@ class InformationWriter(HookBase):
             epoch_info += "{key}: {value:.4f} ".format(
                 key=key, value=self.trainer.storage.history(key).avg
             )
+        intersection = self.trainer.storage.history(f"train_intersection_epoch{self.trainer.epoch}").total
+        union = self.trainer.storage.history(f"train_union_epoch{self.trainer.epoch}").total
+        target = self.trainer.storage.history(f"train_target_epoch{self.trainer.epoch}").total
+        # Fabio, if class is not present, dont count it on mIou
+        valid = target > 0
+        iou_class = np.full_like(target, np.nan, dtype=np.float32)
+        iou_class[valid] = intersection[valid] / (union[valid] + 1e-10)
+        acc_class = np.full_like(target, np.nan, dtype=np.float32)
+        acc_class[valid] = intersection[valid] / (target[valid] + 1e-10)
+
+        #iou_class = intersection / (union + 1e-10)
+        #acc_class = intersection / (target + 1e-10)
+        m_iou = np.nanmean(iou_class)
+        m_acc = np.nanmean(acc_class)
+        all_acc = sum(intersection) / (sum(target) + 1e-10)
+        epoch_info += "mIoU: {m_iou:.4f} ".format(m_iou=m_iou)
+        epoch_info += "mAcc: {m_acc:.4f} ".format(m_acc=m_acc)
+        epoch_info += "allAcc: {all_acc:.4f} ".format(all_acc=all_acc)
+        for i in range(self.trainer.cfg.data.num_classes):
+            #add newline
+            epoch_info += "\n"
+            epoch_info += "Class_{idx}-{name} Result: iou/accuracy {iou:.4f}/{accuracy:.4f} ".format(
+            idx=i,
+            name=self.trainer.cfg.data.names[i],
+            iou=iou_class[i],
+            accuracy=acc_class[i],
+            )
+
         self.trainer.logger.info(epoch_info)
         if self.trainer.writer is not None:
             for key in self.model_output_keys:
@@ -135,6 +171,27 @@ class InformationWriter(HookBase):
                     self.trainer.storage.history(key).avg,
                     self.trainer.epoch + 1,
                 )
+        if self.trainer.neptune_run is not None:
+            for key in self.model_output_keys:
+                self.trainer.neptune_run["train/" + key].log(
+                    value = self.trainer.storage.history(key).avg,
+                    step = self.trainer.epoch + 1,
+                )
+            self.trainer.neptune_run["train/mIoU"].log(value = m_iou,step = self.trainer.epoch + 1)
+            self.trainer.neptune_run["train/mAcc"].log(value = m_acc,step = self.trainer.epoch + 1)
+            self.trainer.neptune_run["train/allAcc"].log(value = all_acc,step = self.trainer.epoch + 1)
+            for i in range(self.trainer.cfg.data.num_classes):
+                if not np.isnan(iou_class[i]): 
+                    self.trainer.neptune_run[f"train/Class_{i}-{self.trainer.cfg.data.names[i]}/iou"].log(
+                        value = iou_class[i],
+                        step = self.trainer.epoch + 1,
+                    )
+                if not np.isnan(acc_class[i]):
+                    self.trainer.neptune_run[f"train/Class_{i}-{self.trainer.cfg.data.names[i]}/accuracy"].log(
+                        value = acc_class[i],
+                        step = self.trainer.epoch + 1,
+                    )
+
 
 
 @HOOKS.register_module()
@@ -486,6 +543,11 @@ class WeightDecaySchedular(HookBase):
             param_group["weight_decay"] = wd
         if self.trainer.writer is not None:
             self.trainer.writer.add_scalar("params/wd", wd, self.scheduler.iter)
+        if self.trainer.neptune_run is not None:
+            self.trainer.neptune_run["params/wd"].log(
+                value = wd,
+                step = self.scheduler.iter,
+            )
 
 
 @HOOKS.register_module()

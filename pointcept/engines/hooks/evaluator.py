@@ -92,6 +92,7 @@ class ClsEvaluator(HookBase):
             self.trainer.writer.add_scalar("val/mIoU", m_iou, current_epoch)
             self.trainer.writer.add_scalar("val/mAcc", m_acc, current_epoch)
             self.trainer.writer.add_scalar("val/allAcc", all_acc, current_epoch)
+
         self.trainer.logger.info("<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<")
         self.trainer.comm_info["current_metric_value"] = all_acc  # save for saver
         self.trainer.comm_info["current_metric_name"] = "allAcc"  # save for saver
@@ -112,6 +113,16 @@ class SemSegEvaluator(HookBase):
             self.eval()
 
     def eval(self):
+        """ # Fabio
+        # When overfitting
+        # if current_metric_value exist put 0 else 1
+        if "current_metric_value" in self.trainer.comm_info.keys():
+            self.trainer.comm_info["current_metric_value"] = 0  # save for saver
+            self.trainer.comm_info["current_metric_name"] = "mIoU"  # save for saver
+        else:
+            self.trainer.comm_info["current_metric_value"] = 1  # save for saver
+            self.trainer.comm_info["current_metric_name"] = "mIoU"  # save for saver
+        return """
         self.trainer.logger.info(">>>>>>>>>>>>>>>> Start Evaluation >>>>>>>>>>>>>>>>")
         self.trainer.model.eval()
         for i, input_dict in enumerate(self.trainer.val_loader):
@@ -169,10 +180,16 @@ class SemSegEvaluator(HookBase):
         intersection = self.trainer.storage.history("val_intersection").total
         union = self.trainer.storage.history("val_union").total
         target = self.trainer.storage.history("val_target").total
-        iou_class = intersection / (union + 1e-10)
-        acc_class = intersection / (target + 1e-10)
-        m_iou = np.mean(iou_class)
-        m_acc = np.mean(acc_class)
+        # Fabio, if class is not present, dont count it on mIoU
+        valid = target > 0
+        iou_class = np.full_like(target, np.nan, dtype=np.float32)
+        iou_class[valid] = intersection[valid] / (union[valid] + 1e-10)
+        acc_class = np.full_like(target, np.nan, dtype=np.float32)
+        acc_class[valid] = intersection[valid] / (target[valid] + 1e-10)
+        #iou_class = intersection / (union + 1e-10)
+        #acc_class = intersection / (target + 1e-10)
+        m_iou = np.nanmean(iou_class)
+        m_acc = np.nanmean(acc_class)
         all_acc = sum(intersection) / (sum(target) + 1e-10)
         self.trainer.logger.info(
             "Val result: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.".format(
@@ -188,6 +205,17 @@ class SemSegEvaluator(HookBase):
                     accuracy=acc_class[i],
                 )
             )
+        #save on neptune
+        if self.trainer.neptune_run is not None:
+            for i in range(self.trainer.cfg.data.num_classes):
+                self.trainer.neptune_run[
+                    f"val/per_class/cls_{i}-{self.trainer.cfg.data.names[i]} IoU"
+                ].log(value = iou_class[i], step = self.trainer.epoch + 1)
+                self.trainer.neptune_run[
+                    f"val/per_class/cls_{i}-{self.trainer.cfg.data.names[i]} Acc"
+                ].log(value = acc_class[i], step = self.trainer.epoch + 1)
+                
+        
         current_epoch = self.trainer.epoch + 1
         if self.trainer.writer is not None:
             self.trainer.writer.add_scalar("val/loss", loss_avg, current_epoch)
@@ -201,6 +229,18 @@ class SemSegEvaluator(HookBase):
                         iou_class[i],
                         current_epoch,
                     )
+        if self.trainer.neptune_run is not None:
+            self.trainer.neptune_run["val/loss"].log(value = loss_avg, step = current_epoch)
+            self.trainer.neptune_run["val/mIoU"].log(value = m_iou, step=current_epoch)
+            self.trainer.neptune_run["val/mAcc"].log(value = m_acc, step=current_epoch)
+            self.trainer.neptune_run["val/allAcc"].log(value = all_acc, step=current_epoch)
+            if self.write_cls_iou:
+                for i in range(self.trainer.cfg.data.num_classes):
+                    if not np.isnan(iou_class[i]):
+                        self.trainer.neptune_run[
+                            f"val/cls_{i}-{self.trainer.cfg.data.names[i]} IoU"
+                        ].log(iou_class[i])
+
         self.trainer.logger.info("<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<")
         self.trainer.comm_info["current_metric_value"] = m_iou  # save for saver
         self.trainer.comm_info["current_metric_name"] = "mIoU"  # save for saver

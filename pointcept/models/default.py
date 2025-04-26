@@ -82,6 +82,8 @@ class DefaultSegmentorV2(nn.Module):
         if self.training:
             loss = self.criteria(seg_logits, input_dict["segment"])
             return_dict["loss"] = loss
+            # adding Fabio
+            return_dict["seg_logits"] = seg_logits
         # eval
         elif "segment" in input_dict.keys():
             loss = self.criteria(seg_logits, input_dict["segment"])

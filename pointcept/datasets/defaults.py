@@ -69,7 +69,10 @@ class DefaultDataset(Dataset):
         self.data_list = self.get_data_list()
 
         """ Overfit small sample for debug """
-        self.data_list = self.data_list[:1]
+        #self.data_list = self.data_list[:1]
+        print("==" * 20)
+        print(self.data_list)
+        print("==" * 20)
 
         logger = get_root_logger()
         logger.info(
