@@ -1,0 +1,287 @@
+Validation split
+Scene A_SMG_portico
+arch       : 	1.57%	(279677)
+column     : 	2.27%	(403751)
+moldings   : 	7.59%	(1350514)
+floor      : 	13.12%	(2335559)
+door_window: 	0.82%	(146613)
+wall       : 	36.4%	(6478431)
+stairs     : 	0.92%	(162952)
+vault      : 	11.81%	(2101349)
+roof       : 	21.47%	(3821971)
+other      : 	4.03%	(717195)
+Number of points: (17798012, 3)
+Average density: 1606.0 points per cubic unit 
+Scene dimensions (depth, width, height): 52.9993515, 63.69830322, 11.121215819999975
+
+
+Class Distribution:
+arch       : 	1.57%	(279677)
+column     : 	2.27%	(403751)
+moldings   : 	7.59%	(1350514)
+floor      : 	13.12%	(2335559)
+door_window: 	0.82%	(146613)
+wall       : 	36.4%	(6478431)
+stairs     : 	0.92%	(162952)
+vault      : 	11.81%	(2101349)
+roof       : 	21.47%	(3821971)
+other      : 	4.03%	(717195)
+
+
+Training split
+Scene 13_KAS_pavillion_2
+column     : 	7.55%	(24606)
+floor      : 	17.13%	(55800)
+wall       : 	14.29%	(46559)
+roof       : 	61.03%	(198853)
+Number of points: (325818, 3)
+Average density: 2710.84 points per cubic unit 
+Scene dimensions (depth, width, height): 6.860801700000003, 6.952575679999995, 6.085659020000001
+
+
+Scene 11_SStefano_portico_2
+arch       : 	6.35%	(638193)
+column     : 	4.93%	(495038)
+moldings   : 	14.82%	(1488653)
+floor      : 	16.33%	(1641088)
+door_window: 	10.75%	(1080587)
+wall       : 	31.36%	(3150563)
+stairs     : 	0.09%	(8844)
+vault      : 	14.65%	(1471839)
+other      : 	0.72%	(72587)
+Number of points: (10047392, 3)
+Average density: 387.14 points per cubic unit 
+Scene dimensions (depth, width, height): 139.6640091, 96.81499862999999, 21.09499967
+
+
+Scene 14_TRE_square
+arch       : 	4.78%	(449838)
+column     : 	2.32%	(217918)
+moldings   : 	16.83%	(1583813)
+floor      : 	0.42%	(39930)
+door_window: 	7.43%	(699574)
+wall       : 	62.5%	(5881113)
+stairs     : 	0.29%	(27307)
+roof       : 	2.37%	(223131)
+other      : 	3.05%	(286615)
+Number of points: (9409239, 3)
+Average density: 38.89 points per cubic unit 
+Scene dimensions (depth, width, height): 109.07690048, 102.03889846, 44.61992872
+
+
+Scene 5_SMV_chapel_1
+arch       : 	1.23%	(46631)
+column     : 	3.04%	(114884)
+moldings   : 	14.77%	(558905)
+floor      : 	15.23%	(576067)
+door_window: 	1.76%	(66596)
+wall       : 	31.99%	(1210158)
+stairs     : 	2.72%	(102800)
+vault      : 	2.64%	(99835)
+roof       : 	17.0%	(643235)
+other      : 	9.63%	(364301)
+Number of points: (3783412, 3)
+Average density: 2108.84 points per cubic unit 
+Scene dimensions (depth, width, height): 17.733886719999646, 17.413864139999987, 15.042236330000037
+
+
+Scene 2_TR_church
+arch       : 	7.71%	(1608274)
+column     : 	1.64%	(342850)
+moldings   : 	11.66%	(2433058)
+floor      : 	12.26%	(2558005)
+door_window: 	1.93%	(402839)
+wall       : 	24.32%	(5073247)
+stairs     : 	0.59%	(122257)
+vault      : 	22.6%	(4714752)
+other      : 	17.29%	(3606857)
+Number of points: (20862139, 3)
+Average density: 2789.55 points per cubic unit 
+Scene dimensions (depth, width, height): 46.189288680000004, 22.512916559999994, 16.77420043999996
+
+
+Scene 4_CA_church
+arch       : 	0.28%	(13442)
+moldings   : 	7.12%	(345483)
+door_window: 	1.0% 	(48413)
+wall       : 	58.0%	(2813353)
+stairs     : 	0.23%	(11180)
+roof       : 	32.14%	(1559137)
+other      : 	1.23%	(59799)
+Number of points: (4850807, 3)
+Average density: 1683.23 points per cubic unit 
+Scene dimensions (depth, width, height): 16.092248910000002, 24.67752075, 14.411376949999976
+
+
+Scene 6_SMV_chapel_2to4
+arch       : 	1.04%	(65907)
+column     : 	0.95%	(59833)
+moldings   : 	1.72%	(108747)
+floor      : 	15.92%	(1007100)
+door_window: 	2.25%	(142086)
+wall       : 	41.59%	(2631431)
+stairs     : 	3.68%	(232738)
+vault      : 	9.53%	(602901)
+roof       : 	8.31%	(525943)
+other      : 	15.02%	(950185)
+Number of points: (6326871, 3)
+Average density: 1985.07 points per cubic unit 
+Scene dimensions (depth, width, height): 27.2646484400002, 30.51200867, 13.374023439999974
+
+
+Scene 3_VAL_room
+column     : 	5.46%	(228517)
+moldings   : 	14.61%	(612011)
+floor      : 	24.14%	(1011033)
+door_window: 	10.55%	(441874)
+wall       : 	15.89%	(665449)
+vault      : 	27.95%	(1170457)
+other      : 	1.4% 	(58725)
+Number of points: (4188066, 3)
+Average density: 4235.95 points per cubic unit 
+Scene dimensions (depth, width, height): 16.36474609000004, 18.830444339999985, 5.727233890000008
+
+
+Scene 12_KAS_pavillion_1
+column     : 	6.84%	(40941)
+floor      : 	14.68%	(87872)
+wall       : 	2.26%	(13534)
+roof       : 	76.21%	(456033)
+Number of points: (598380, 3)
+Average density: 2373.18 points per cubic unit 
+Scene dimensions (depth, width, height): 9.974823, 11.864929200000006, 5.604690550000001
+
+
+Scene 1_TR_cloister
+arch       : 	2.43%	(382267)
+moldings   : 	6.72%	(1057958)
+floor      : 	12.37%	(1947485)
+door_window: 	8.72%	(1372225)
+wall       : 	39.95%	(6288517)
+stairs     : 	0.02%	(2805)
+vault      : 	19.31%	(3039615)
+roof       : 	5.37%	(845798)
+other      : 	5.11%	(803559)
+Number of points: (15740229, 3)
+Average density: 1940.85 points per cubic unit 
+Scene dimensions (depth, width, height): 38.1495806, 34.83897400000001, 10.703552249999973
+
+
+Scene 8_SMV_chapel_28
+arch       : 	1.11%	(35123)
+column     : 	7.96%	(251121)
+moldings   : 	25.7%	(811273)
+floor      : 	6.09%	(192330)
+door_window: 	0.43%	(13617)
+wall       : 	46.18%	(1457634)
+stairs     : 	0.44%	(13733)
+vault      : 	10.3%	(325035)
+roof       : 	1.8% 	(56887)
+Number of points: (3156753, 3)
+Average density: 2342.71 points per cubic unit 
+Scene dimensions (depth, width, height): 11.409667959999751, 12.764976500000003, 12.858947759999978
+
+
+Scene 9_SMV_chapel_10
+moldings   : 	6.04%	(132422)
+floor      : 	5.65%	(123952)
+door_window: 	4.23%	(92768)
+wall       : 	59.3%	(1300520)
+stairs     : 	4.06%	(89047)
+roof       : 	19.35%	(424351)
+other      : 	1.37%	(30129)
+Number of points: (2193189, 3)
+Average density: 3299.14 points per cubic unit 
+Scene dimensions (depth, width, height): 12.34899902, 11.647499080000003, 11.093811029999983
+
+
+Scene 7_SMV_chapel_24
+arch       : 	2.84%	(101322)
+column     : 	1.38%	(49298)
+moldings   : 	13.96%	(498343)
+floor      : 	0.47%	(16647)
+door_window: 	1.39%	(49552)
+wall       : 	65.47%	(2337955)
+stairs     : 	2.08%	(74205)
+vault      : 	7.44%	(265752)
+roof       : 	3.69%	(131776)
+other      : 	1.29%	(46214)
+Number of points: (3571064, 3)
+Average density: 1736.85 points per cubic unit 
+Scene dimensions (depth, width, height): 14.979980469999646, 16.542327880000016, 14.462890629999947
+
+
+Scene 10_SStefano_portico_1
+arch       : 	5.36%	(202952)
+column     : 	8.13%	(307513)
+moldings   : 	23.64%	(894485)
+floor      : 	14.84%	(561632)
+door_window: 	9.85%	(372854)
+wall       : 	25.75%	(974441)
+stairs     : 	0.33%	(12609)
+vault      : 	10.9%	(412459)
+other      : 	1.18%	(44754)
+Number of points: (3783699, 3)
+Average density: 383.25 points per cubic unit 
+Scene dimensions (depth, width, height): 36.29699659, 66.88700104, 22.2889998
+
+
+Scene 15_OTT_church
+arch       : 	4.28%	(569465)
+column     : 	1.74%	(231576)
+moldings   : 	5.61%	(746427)
+floor      : 	7.95%	(1057210)
+door_window: 	4.63%	(615415)
+wall       : 	51.25%	(6817640)
+stairs     : 	0.32%	(42948)
+vault      : 	14.63%	(1946450)
+roof       : 	7.96%	(1059336)
+other      : 	1.63%	(216436)
+Number of points: (13302903, 3)
+Average density: 980.41 points per cubic unit 
+Scene dimensions (depth, width, height): 25.777999879999996, 38.86199951, 29.370010379999997
+
+
+Class Distribution:
+arch       : 	4.03%	(4113414)
+column     : 	2.31%	(2364095)
+moldings   : 	11.04%	(11271578)
+floor      : 	10.65%	(10876151)
+door_window: 	5.29%	(5398400)
+wall       : 	39.81%	(40662114)
+stairs     : 	0.72%	(740473)
+vault      : 	13.75%	(14049095)
+roof       : 	6.0% 	(6124480)
+other      : 	6.4% 	(6540161)
+
+
+Test split
+Scene B_SMV_chapel_27to35
+arch       : 	2.95%	(478397)
+column     : 	2.64%	(427107)
+moldings   : 	6.87%	(1112471)
+floor      : 	7.08%	(1147659)
+door_window: 	2.99%	(484550)
+wall       : 	39.86%	(6457975)
+stairs     : 	4.75%	(768890)
+vault      : 	13.79%	(2233582)
+roof       : 	15.43%	(2499947)
+other      : 	3.64%	(589864)
+Number of points: (16200442, 3)
+Average density: 1933.47 points per cubic unit 
+Scene dimensions (depth, width, height): 24.899902340000153, 30.97681426999999, 17.66424561000008
+
+
+Class Distribution:
+arch       : 	2.95%	(478397)
+column     : 	2.64%	(427107)
+moldings   : 	6.87%	(1112471)
+floor      : 	7.08%	(1147659)
+door_window: 	2.99%	(484550)
+wall       : 	39.86%	(6457975)
+stairs     : 	4.75%	(768890)
+vault      : 	13.79%	(2233582)
+roof       : 	15.43%	(2499947)
+other      : 	3.64%	(589864)
+
+

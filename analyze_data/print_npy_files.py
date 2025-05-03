@@ -19,12 +19,12 @@ def visualize_npy_files(npy_dir):
             continue
         # Load the .npy file
         data = np.load(npy_file)
-        """# Print the first and last 5 elements of the data
+        # Print the first and last 5 elements of the data
         print(f"File: {npy_file}")
         print("First 5 elements:", data[:5])
         print("Last 5 elements:", data[-5:])
         print("Shape:", data.shape)
-        print("-" * 40)  """
+        print("-" * 40) 
         # Store the length of the data
         sorted_len.append(data.shape[0])
         names.append(npy_file)
