@@ -135,6 +135,7 @@ class SemSegEvaluator(HookBase):
             loss = output_dict["loss"]
             pred = output.max(1)[1]
             segment = input_dict["segment"]
+            orig_points = 0
             if "origin_coord" in input_dict.keys():
                 idx, _ = pointops.knn_query(
                     1,
@@ -145,6 +146,8 @@ class SemSegEvaluator(HookBase):
                 )
                 pred = pred[idx.flatten().long()]
                 segment = input_dict["origin_segment"]
+                orig_points = input_dict["origin_segment"].shape[0]
+            print("points predicted, labels, orig_points: ", pred.shape[0], segment.shape[0], orig_points)
             intersection, union, target = intersection_and_union_gpu(
                 pred,
                 segment,
@@ -208,12 +211,14 @@ class SemSegEvaluator(HookBase):
         #save on neptune
         if self.trainer.neptune_run is not None:
             for i in range(self.trainer.cfg.data.num_classes):
-                self.trainer.neptune_run[
-                    f"val/per_class/cls_{i}-{self.trainer.cfg.data.names[i]} IoU"
-                ].log(value = iou_class[i], step = self.trainer.epoch + 1)
-                self.trainer.neptune_run[
-                    f"val/per_class/cls_{i}-{self.trainer.cfg.data.names[i]} Acc"
-                ].log(value = acc_class[i], step = self.trainer.epoch + 1)
+                if not np.isnan(iou_class[i]):
+                    self.trainer.neptune_run[
+                        f"val/per_class/cls_{i}-{self.trainer.cfg.data.names[i]} IoU"
+                    ].log(value = iou_class[i], step = self.trainer.epoch + 1)
+                if not np.isnan(acc_class[i]):
+                    self.trainer.neptune_run[
+                        f"val/per_class/cls_{i}-{self.trainer.cfg.data.names[i]} Acc"
+                    ].log(value = acc_class[i], step = self.trainer.epoch + 1)
                 
         
         current_epoch = self.trainer.epoch + 1

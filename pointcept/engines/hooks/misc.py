@@ -253,6 +253,7 @@ class CheckpointSaver(HookBase):
                         f"epoch_{self.trainer.epoch + 1}.pth",
                     ),
                 )
+            print("SAVED")
 
 
 @HOOKS.register_module()

@@ -136,13 +136,22 @@ class Trainer(TrainerBase):
         self.epoch = 0
         self.start_epoch = 0
 
+        # Start a new neptune experiment
         self.neptune_run = init_run(
             project = "GRAINS/ArchLTN",
             api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI2ZDE2NjEyNC0xZmI2LTRjMmYtYmM1Yi1kNzFhY2E1YzY4NjcifQ==",
-            name = f"{cfg.data.train.type}-on-{cfg.model.type}",
-            tags = [cfg.data.train.type, "training", "semseg", cfg.model.type, 'SphereCrop150k'],
+            name = f"{cfg.data.train.type}-on-{cfg.model.type}-{cfg.model.backbone.type}",
+            tags = [cfg.data.train.type, "training", "semseg", cfg.model.type],
             monitoring_namespace="monitoring/"
         )
+        # Resume neptune experiment
+        """ RUN_ID = "AR-144"
+        self.neptune_run = init_run(
+            with_id=RUN_ID,
+            project="GRAINS/ArchLTN",
+            api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI2ZDE2NjEyNC0xZmI2LTRjMmYtYmM1Yi1kNzFhY2E1YzY4NjcifQ=="
+        ) """
+        # Dont log neptune experiment
         #self.neptune_run = None
         if self.neptune_run is not None:
             neptune_id = self.neptune_run["sys/id"].fetch()
