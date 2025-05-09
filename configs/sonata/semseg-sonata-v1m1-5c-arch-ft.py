@@ -1,9 +1,10 @@
 _base_ = ["../_base_/default_runtime.py"]
 
 # misc custom setting
-batch_size = 1 #24  # bs: total bs in all gpus
-num_worker = 2 #48
+batch_size = 24  # bs: total bs in all gpus
+num_worker = 48
 mix_prob = 0.8
+clip_grad = 3.0
 empty_cache = False
 enable_amp = True
 
@@ -19,11 +20,11 @@ model = dict(
         enc_depths=(3, 3, 3, 12, 3),
         enc_channels=(48, 96, 192, 384, 512),
         enc_num_head=(3, 6, 12, 24, 32),
-        enc_patch_size=(128,128,128,128,128), #(1024, 1024, 1024, 1024, 1024),
+        enc_patch_size=(1024, 1024, 1024, 1024, 1024),
         dec_depths=(2, 2, 2, 2),
         dec_channels=(64, 96, 192, 384),
         dec_num_head=(4, 6, 12, 24),
-        dec_patch_size=(128,128,128,128), #(1024, 1024, 1024, 1024),
+        dec_patch_size=(1024, 1024, 1024, 1024),
         mlp_ratio=4,
         qkv_bias=True,
         qk_scale=None,
@@ -33,7 +34,7 @@ model = dict(
         shuffle_orders=True,
         pre_norm=True,
         enable_rpe=False,
-        enable_flash=False,
+        enable_flash=True,
         upcast_attention=False,
         upcast_softmax=False,
         traceable=False,
@@ -49,8 +50,8 @@ model = dict(
 )
 
 # scheduler settings
-epoch = 100 #3000
-"""optimizer = dict(type="AdamW", lr=0.002, weight_decay=0.02)
+epoch = 3000 #3000
+optimizer = dict(type="AdamW", lr=0.002, weight_decay=0.02)
 scheduler = dict(
     type="OneCycleLR",
     max_lr=[0.002, 0.0002],
@@ -59,9 +60,10 @@ scheduler = dict(
     div_factor=10.0,
     final_div_factor=1000.0,
 )
-param_dicts = [dict(keyword="block", lr=0.0002)] """
+param_dicts = [dict(keyword="block", lr=0.0002)]
 
-optimizer = dict(type="AdamW", lr=0.0002, weight_decay=0.02)
+# Version for minimal batch size
+""" optimizer = dict(type="AdamW", lr=0.0002, weight_decay=0.02)
 scheduler = dict(
     type="OneCycleLR",
     max_lr=[0.0002, 0.00002],
@@ -70,7 +72,7 @@ scheduler = dict(
     div_factor=10.0,
     final_div_factor=1000.0,
 )
-param_dicts = [dict(keyword="block", lr=0.0002)]
+param_dicts = [dict(keyword="block", lr=0.0002)] """
 
 # dataset settings
 dataset_type = "ArchDataset"
@@ -122,7 +124,7 @@ data = dict(
                 return_grid_coord=True,
             ),
             dict(type="SphereCrop", sample_rate=0.6, mode="random"),
-            dict(type="SphereCrop", point_max=80_000, mode="random"),
+            dict(type="SphereCrop", point_max=204800, mode="random"),
             dict(type="CenterShift", apply_z=False),
             dict(type="NormalizeColor"),
             # dict(type="ShufflePoint"),
@@ -137,7 +139,7 @@ data = dict(
     ),
     val=dict(
         type=dataset_type,
-        split="Validation_100k",
+        split="Validation",
         data_root=data_root,
         transform=[
             dict(type="CenterShift", apply_z=True),
@@ -152,7 +154,6 @@ data = dict(
                 mode="train",
                 return_grid_coord=True,
             ),
-            dict(type="SphereCrop", point_max=409600, mode="center"),
             dict(type="CenterShift", apply_z=False),
             dict(type="NormalizeColor"),
             dict(type="ToTensor"),
