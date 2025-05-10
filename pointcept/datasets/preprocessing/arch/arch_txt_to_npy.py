@@ -53,10 +53,15 @@ def parse_scene(
     scene_name = os.path.basename(source_path)
     obj = np.loadtxt(source_path)
     coords = obj[:, :3]
-    colors = obj[:, 3:6]
-    class_id = obj[:, 6]
+    colors = obj[:, 3:6].astype(np.int32)
+    normals = obj[:, 6:9]
+    class_id = obj[:, 9]
     class_id = class_id.astype(np.int32).reshape([-1, 1])
-    normals = obj[:, 7:10]
+
+    lenght_got_features = coords.shape[1] + colors.shape[1] + normals.shape[1] + class_id.shape[1]
+    print(obj.shape)
+    print(f"Leaving out {obj.shape[1] - lenght_got_features} features")
+    
 
     print("Processing scene: ", scene_name)
     print("Shape of coords: ", coords.shape)
@@ -106,42 +111,26 @@ def main_process():
     # Create the output directory if it doesn't exist
     os.makedirs(args.output_root, exist_ok=True)
     print("Output root path: ", args.output_root)
-    # Load the scene list from the dataset root
-    print("Loading training scene list...")
-    training_root = os.path.join(args.dataset_root, "Training")
-    testing_root = os.path.join(args.dataset_root, "Test")
-    scene_training = glob.glob(os.path.join(training_root, "*.txt"))
-    scene_training_names = [os.path.basename(scene) for scene in scene_training]
-    print("Training scene list loaded.")
-    print("Loading testing scene list...")
-    scene_testing = glob.glob(os.path.join(testing_root, "*.txt"))
-    scene_testing_names = [os.path.basename(scene) for scene in scene_testing]
-    print("Testing scene list loaded.")
-
+    # Get all the directories in the dataset root
+    # Check if the dataset root is a directory
+    directories = os.listdir(args.dataset_root)
     # Create the output directory if it doesn't exist
     os.makedirs(args.output_root, exist_ok=True)
     # Process the training scenes
-    print("Processing training scenes...")
-    # For now not using multiprocessing
 
-    for scene in scene_training_names:
-        output_dir = os.path.join(args.output_root, 'Training')
-        # Create the output directory for training scenes
-        os.makedirs(output_dir, exist_ok=True)
-        # Parse the scene and save the data
-        parse_scene(scene, training_root, output_dir)
-    print("Training scenes processed.")
-    # Process the testing scenes
-    print("Processing testing scenes...")
-    for scene in scene_testing_names:
-        output_dir = os.path.join(args.output_root, 'Test')
-        # Create the output directory for testing scenes
-        os.makedirs(output_dir, exist_ok=True)
-        # Parse the scene and save the data
-        parse_scene(scene, testing_root, output_dir)
-    print("Testing scenes processed.")
+    for dir in directories:
+        dir_path = os.path.join(args.dataset_root, dir)
+        scenes = glob.glob(os.path.join(dir_path, "*.txt"))
+        scenes_names = [os.path.basename(scene) for scene in scenes]
+        print(f"Processing {dir} scenes...")
+        for scene in scenes_names:
+            output_dir = os.path.join(args.output_root, dir)
+            # Create the output directory for each dir
+            os.makedirs(output_dir, exist_ok=True)
+            # Parse the scene and save the data
+            parse_scene(scene, dir_path, output_dir)
+        print(f"{dir} scenes processed.")
     print("All scenes processed.")
-    print("Done.")
 
 
 if __name__ == "__main__":
