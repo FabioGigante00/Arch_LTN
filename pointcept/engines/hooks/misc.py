@@ -213,11 +213,23 @@ class CheckpointSaver(HookBase):
                             current_metric_name, current_metric_value
                         )
                     )
+                    # Logging in neptune - Fabio
+                    if self.trainer.neptune_run is not None:
+                        self.trainer.neptune_run["best_metric"].log(
+                            value = current_metric_value,
+                            step = self.trainer.epoch + 1,
+                        )
                 self.trainer.logger.info(
                     "Currently Best {}: {:.4f}".format(
                         current_metric_name, self.trainer.best_metric_value
                     )
                 )
+                # Logging in neptune - Fabio
+                if self.trainer.neptune_run is not None:
+                    self.trainer.neptune_run["current_metric"].log(
+                        value = current_metric_value,
+                        step = self.trainer.epoch + 1,
+                    )
 
             filename = os.path.join(
                 self.trainer.cfg.save_path, "model", "model_last.pth"
@@ -252,6 +264,11 @@ class CheckpointSaver(HookBase):
                         "model",
                         f"epoch_{self.trainer.epoch + 1}.pth",
                     ),
+                )
+            # Track model path in neptune
+            if self.trainer.neptune_run is not None:
+                self.trainer.neptune_run["model_weight"].track_files(
+                    os.path.join(self.trainer.cfg.save_path, "model")
                 )
             print("SAVED")
 

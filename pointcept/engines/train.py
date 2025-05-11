@@ -154,6 +154,10 @@ class Trainer(TrainerBase):
         # Dont log neptune experiment
         #self.neptune_run = None
         if self.neptune_run is not None:
+            # Save on neptune the exp folder
+            self.neptune_run['exp'].track_files(cfg.save_path)
+
+        if self.neptune_run is not None:
             neptune_id = self.neptune_run["sys/id"].fetch()
             old_path = cfg.save_path
             cfg.save_path = os.path.join(cfg.save_path, neptune_id)
@@ -178,6 +182,7 @@ class Trainer(TrainerBase):
             # if cfg.save_path/model does not exist create it
             if not os.path.exists(os.path.join(cfg.save_path, "model")):
                 os.makedirs(os.path.join(cfg.save_path, "model"))
+        
             
         self.max_epoch = cfg.eval_epoch
         self.best_metric_value = -torch.inf
