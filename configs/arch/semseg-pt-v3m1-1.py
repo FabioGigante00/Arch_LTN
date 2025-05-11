@@ -1,8 +1,8 @@
 _base_ = ["../_base_/default_runtime.py"]
 
 # misc custom setting
-batch_size = 12 #12  # bs: total bs in all gpus
-num_worker = 24 #24
+batch_size = 7 #12  # bs: total bs in all gpus
+num_worker = 14 #24
 mix_prob = 0.8
 empty_cache = False
 enable_amp = True
@@ -54,16 +54,16 @@ model = dict(
 
 # scheduler settings
 epoch = 3000
-optimizer = dict(type="AdamW", lr=0.006, weight_decay=0.05)
+optimizer = dict(type="AdamW", lr=0.0012, weight_decay=0.0029)
 scheduler = dict(
     type="OneCycleLR",
-    max_lr=[0.006, 0.0006],
-    pct_start=0.05,
+    max_lr=[0.0012, 0.00012],
+    pct_start=0.04,
     anneal_strategy="cos",
     div_factor=10.0,
     final_div_factor=1000.0,
 )
-param_dicts = [dict(keyword="block", lr=0.0006)]
+param_dicts = [dict(keyword="block", lr=0.00012)]
 
 # dataset settings
 dataset_type = "ArchDataset"
