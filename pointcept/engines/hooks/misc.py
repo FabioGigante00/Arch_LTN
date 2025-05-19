@@ -122,7 +122,10 @@ class InformationWriter(HookBase):
                     self.curr_iter,
                 )
         if self.trainer.neptune_run is not None:
-            self.trainer.neptune_run["params/lr"].log(lr)
+            self.trainer.neptune_run["params/lr"].log(
+                value = lr,
+                step = self.curr_iter,
+            )
             for key in self.model_output_keys:
                 self.trainer.neptune_run["train_batch/" + key].log(
                     value = self.trainer.storage.history(key).val,
@@ -256,6 +259,10 @@ class CheckpointSaver(HookBase):
                     filename,
                     os.path.join(self.trainer.cfg.save_path, "model", "model_best.pth"),
                 )
+                if self.trainer.neptune_run is not None:
+                    self.trainer.neptune_run["model_best_weight"].upload(
+                        os.path.join(self.trainer.cfg.save_path, "model", "model_best.pth")
+                    )
             if self.save_freq and (self.trainer.epoch + 1) % self.save_freq == 0:
                 shutil.copyfile(
                     filename,
@@ -267,8 +274,8 @@ class CheckpointSaver(HookBase):
                 )
             # Track model path in neptune
             if self.trainer.neptune_run is not None:
-                self.trainer.neptune_run["model_weight"].track_files(
-                    os.path.join(self.trainer.cfg.save_path, "model")
+                self.trainer.neptune_run["model_weight"].upload(
+                    os.path.join(self.trainer.cfg.save_path, "model", "model_last.pth")
                 )
             print("SAVED")
 

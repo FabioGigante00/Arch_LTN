@@ -16,7 +16,7 @@ NUM_MACHINE=1
 DIST_URL="auto"
 
 
-while getopts "p:d:c:n:w:g:m:r:" opt; do
+while getopts "p:d:c:n:w:g:m:r:t:" opt; do
   case $opt in
     p)
       PYTHON=$OPTARG
@@ -42,6 +42,9 @@ while getopts "p:d:c:n:w:g:m:r:" opt; do
     m)
       NUM_MACHINE=$OPTARG
       ;;
+    t) 
+      TRAIN_CODE=$OPTARG
+      ;;
     \?)
       echo "Invalid option: -$OPTARG"
       ;;
@@ -59,6 +62,7 @@ echo "Dataset: $DATASET"
 echo "Config: $CONFIG"
 echo "GPU Num: $NUM_GPU"
 echo "Machine Num: $NUM_MACHINE"
+echo "Train code: $TRAIN_CODE"
 
 if [ -n "$SLURM_NODELIST" ]; then
   MASTER_HOSTNAME=$(scontrol show hostname "$SLURM_NODELIST" | head -n 1)
@@ -93,6 +97,8 @@ echo "Running code in: $CODE_DIR"
 
 
 echo " =========> RUN TASK <========="
+
+echo "Train code: "$TRAIN_CODE""
 
 if [ "${WEIGHT}" = "None" ]
 then
