@@ -153,9 +153,6 @@ class Trainer(TrainerBase):
         ) """
         # Dont log neptune experiment
         #self.neptune_run = None
-        if self.neptune_run is not None:
-            # Save on neptune the exp folder
-            self.neptune_run['exp'].track_files(cfg.save_path)
 
         if self.neptune_run is not None:
             neptune_id = self.neptune_run["sys/id"].fetch()
