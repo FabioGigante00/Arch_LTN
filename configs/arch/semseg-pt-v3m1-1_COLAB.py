@@ -195,7 +195,7 @@ data = dict(
                             angle=[0], axis="z", center=[0, 0, 0], p=1)
                 ]
         ),
-        ignore_index=-1,
+        ignore_index=9,
     ),
 )
 
