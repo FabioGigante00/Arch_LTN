@@ -174,14 +174,14 @@ data = dict(
         test_cfg=dict(
             voxelize=dict(
                 type="GridSample",
-                grid_size=0.05,
+                grid_size=0.02,
                 hash_type="fnv",
                 mode="test",
                 return_grid_coord=True,
             ),
             crop=None,
             post_transform=[
-                dict(type="SphereCrop", point_max=150_000, mode='center'),
+                dict(type="CenterShift", apply_z=False),
                 dict(type="ToTensor"),
                 dict(
                     type="Collect",

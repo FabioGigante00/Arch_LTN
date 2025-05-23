@@ -184,15 +184,18 @@ class SemSegEvaluator(HookBase):
         union = self.trainer.storage.history("val_union").total
         target = self.trainer.storage.history("val_target").total
         # Fabio, if class is not present, dont count it on mIoU
-        valid = target > 0
+        """ valid = target > 0
         iou_class = np.full_like(target, np.nan, dtype=np.float32)
         iou_class[valid] = intersection[valid] / (union[valid] + 1e-10)
         acc_class = np.full_like(target, np.nan, dtype=np.float32)
         acc_class[valid] = intersection[valid] / (target[valid] + 1e-10)
-        #iou_class = intersection / (union + 1e-10)
-        #acc_class = intersection / (target + 1e-10)
         m_iou = np.nanmean(iou_class)
-        m_acc = np.nanmean(acc_class)
+        m_acc = np.nanmean(acc_class) """
+        # Original
+        iou_class = intersection / (union + 1e-10)
+        acc_class = intersection / (target + 1e-10)
+        m_iou = np.mean(iou_class)
+        m_acc = np.mean(acc_class)
         all_acc = sum(intersection) / (sum(target) + 1e-10)
         self.trainer.logger.info(
             "Val result: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.".format(
