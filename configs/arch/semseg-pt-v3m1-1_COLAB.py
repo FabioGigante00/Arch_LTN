@@ -191,8 +191,7 @@ data = dict(
             ],
             aug_transform=
                 [
-                    dict(type="RandomRotateTargetAngle", 
-                            angle=[0], axis="z", center=[0, 0, 0], p=1)
+                    [dict(type="RandomRotateTargetAngle", angle=[0], axis="z", center=[0, 0, 0], p=1)]
                 ]
         ),
         ignore_index=9,
