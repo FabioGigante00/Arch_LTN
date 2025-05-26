@@ -27,6 +27,8 @@ from pointcept.utils.misc import (
     make_dirs,
 )
 
+import pointops
+
 
 TESTERS = Registry("testers")
 
@@ -877,6 +879,105 @@ class PartSegTester(TesterBase):
                     name=self.test_loader.dataset.categories[i],
                     iou_cat=iou_category[i] / (iou_count[i] + 1e-10),
                     iou_count=int(iou_count[i]),
+                )
+            )
+        logger.info("<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<")
+
+    @staticmethod
+    def collate_fn(batch):
+        return collate_fn(batch)
+
+@TESTERS.register_module()
+class EasyTester(TesterBase):
+    def test(self):
+        assert self.test_loader.batch_size == 1
+        logger = get_root_logger()
+        logger.info(">>>>>>>>>>>>>>>> Start Evaluation >>>>>>>>>>>>>>>>")
+        logger.info(">>>>>>>>>>>>>>>> Running my easy tester >>>>>>>>>>>>>>>>")
+        batch_time = AverageMeter()
+        intersection_meter = AverageMeter()
+        union_meter = AverageMeter()
+        target_meter = AverageMeter()
+        self.model.eval()
+        save_path = os.path.join(self.cfg.save_path, "result")
+        make_dirs(save_path)
+        comm.synchronize()
+        record = {}
+        for i, input_dict in enumerate(self.test_loader):
+            for key in input_dict.keys():
+                if isinstance(input_dict[key], torch.Tensor):
+                    input_dict[key] = input_dict[key].cuda(non_blocking=True)
+            with torch.no_grad():
+                output_dict = self.model(input_dict)
+            output = output_dict["seg_logits"]
+            loss = output_dict["loss"]
+            pred = output.max(1)[1]
+            print(f"Number of predictions before upscaling: {pred.shape[0]}")
+            segment = input_dict["segment"]
+            orig_points = 0
+            if "origin_coord" in input_dict.keys():
+                idx, _ = pointops.knn_query(
+                    1,
+                    input_dict["coord"].float(),
+                    input_dict["offset"].int(),
+                    input_dict["origin_coord"].float(),
+                    input_dict["origin_offset"].int(),
+                )
+                pred = pred[idx.flatten().long()]
+                segment = input_dict["origin_segment"]
+                orig_points = input_dict["origin_segment"].shape[0]
+            print("points predicted, labels, orig_points: ", pred.shape[0], segment.shape[0], orig_points)
+            intersection, union, target = intersection_and_union_gpu(
+                pred,
+                segment,
+                self.cfg.data.num_classes,
+                self.cfg.data.ignore_index,
+            )
+            if comm.get_world_size() > 1:
+                dist.all_reduce(intersection), dist.all_reduce(union), dist.all_reduce(
+                    target
+                )
+            intersection, union, target = (
+                intersection.cpu().numpy(),
+                union.cpu().numpy(),
+                target.cpu().numpy(),
+            )
+            # Here there is no need to sync since sync happened in dist.all_reduce
+            intersection_meter.update(intersection)
+            union_meter.update(union)
+            target_meter.update(target)
+            info = "Test: [{iter}/{max_iter}] ".format(
+                iter=i + 1, max_iter=len(self.test_loader)
+            )
+            if "origin_coord" in input_dict.keys():
+                info = "Interp. " + info
+            logger.info(
+                info
+                + "Loss {loss:.4f} ".format(
+                    iter=i + 1, max_iter=len(self.test_loader), loss=loss.item()
+                )
+            )
+        loss_avg = batch_time.avg  # Or set to None if not tracked
+        intersection = intersection_meter.sum
+        union = union_meter.sum
+        target = target_meter.sum
+        iou_class = intersection / (union + 1e-10)
+        acc_class = intersection / (target + 1e-10)
+        m_iou = np.mean(iou_class)
+        m_acc = np.mean(acc_class)
+        all_acc = sum(intersection) / (sum(target) + 1e-10)
+        self.logger.info(
+            "Val result: mIoU/mAcc/allAcc {:.4f}/{:.4f}/{:.4f}.".format(
+                m_iou, m_acc, all_acc
+            )
+        )
+        for i in range(self.cfg.data.num_classes):
+            self.logger.info(
+                "Class_{idx}-{name} Result: iou/accuracy {iou:.4f}/{accuracy:.4f}".format(
+                    idx=i,
+                    name=self.cfg.data.names[i],
+                    iou=iou_class[i],
+                    accuracy=acc_class[i],
                 )
             )
         logger.info("<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<")
