@@ -904,6 +904,7 @@ class EasyTester(TesterBase):
         comm.synchronize()
         record = {}
         for i, input_dict in enumerate(self.test_loader):
+            scene_name = input_dict.pop("name")
             for key in input_dict.keys():
                 if isinstance(input_dict[key], torch.Tensor):
                     input_dict[key] = input_dict[key].cuda(non_blocking=True)
@@ -927,6 +928,14 @@ class EasyTester(TesterBase):
                 segment = input_dict["origin_segment"]
                 orig_points = input_dict["origin_segment"].shape[0]
             print("points predicted, labels, orig_points: ", pred.shape[0], segment.shape[0], orig_points)
+            print("Name of the scene", scene_name[0])
+            # Save prediction and origin_coord in a npy file
+            if "origin_coord" in input_dict.keys():
+                np.save(
+                    os.path.join(save_path, f"{scene_name[0]}_pred.npy"),
+                    pred.cpu().numpy(),
+                )
+
             intersection, union, target = intersection_and_union_gpu(
                 pred,
                 segment,
