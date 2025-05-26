@@ -7,6 +7,8 @@ mix_prob = 0.8
 empty_cache = False
 enable_amp = True
 
+test = dict(type="EasyTester", verbose=True)
+
 # model settings
 model = dict(
     type="DefaultSegmentorV2",
@@ -162,40 +164,34 @@ data = dict(
         ],
         test_mode=False,
     ),
-    test=dict(
-        type=dataset_type,
-        split="Test_splitted_CC",
-        data_root=data_root,
+    test = dict(
+        type='ArchDataset',
+        split='Test_splitted_CC',
+        data_root='data/Arch',
         transform=[
-            dict(type="CenterShift", apply_z=True),
-            dict(type="NormalizeColor"),
-        ],
-        test_mode=True,
-        test_cfg=dict(
-            voxelize=dict(
-                type="GridSample",
+            dict(type='CenterShift', apply_z=True),
+            dict(
+                type='Copy',
+                keys_dict=dict(coord='origin_coord',
+                               segment='origin_segment')),
+            dict(
+                type='GridSample',
                 grid_size=0.02,
-                hash_type="fnv",
-                mode="test",
-                return_grid_coord=True,
-            ),
-            crop=None,
-            post_transform=[
-                dict(type="CenterShift", apply_z=False),
-                dict(type="ToTensor"),
-                dict(
-                    type="Collect",
-                    keys=("coord", "grid_coord", "index"),
-                    feat_keys=("coord", "normal"),
-                ),
-            ],
-            aug_transform=
-                [
-                    [dict(type="RandomRotateTargetAngle", angle=[0], axis="z", center=[0, 0, 0], p=1)]
-                ]
-        ),
-        ignore_index=9,
-    ),
+                hash_type='fnv',
+                mode='train',
+                return_grid_coord=True),
+            dict(type='CenterShift', apply_z=False),
+            dict(type='NormalizeColor'),
+            dict(type='ToTensor'),
+            dict(
+                type='Collect',
+                keys=('coord', 'grid_coord', 'origin_coord', 'segment',
+                      'origin_segment', 'name'),
+                offset_keys_dict=dict(
+                    offset='coord', origin_offset='origin_coord'),
+                feat_keys=('color', 'normal'))
+        ],
+        test_mode=False),
 )
 
 """ 
